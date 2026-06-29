@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+frontend/dist/
+contracts/target/
+circuits/node_modules/
+circuits/withdraw_js/
+circuits/deposit_js/
+circuits/*.ptau
+circuits/*.zkey
+circuits/*.r1cs
+circuits/*.sym
+circuits/verification_key.json
+
+# Dev artifacts
+.kimchi/
+.last_pool_id
+
+# Circom compiler (install via npm, don't commit the source)
+circom/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Rust
+*.pdb
+target/
+contracts/target/
+*.timestamp-*

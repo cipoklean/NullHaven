@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StellarShield — Compliant Privacy Pool</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyan: { 400: '#22d3ee', 500: '#06b6d4' },
+            violet: { 400: '#a78bfa', 500: '#8b5cf6' },
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div id="root"></div>
+  <script type="module">
+    const STATE = {
+      page: 'home',
+      wallet: null,
+      depositNote: null,
+      deposits: [],
+      proof: null,
+      members: ['0x1a2b...3c4d', '0x5e6f...7g8h'],
+      denied: ['0xbad...0001'],
+      auditors: ['GAUDITOR...0001'],
+    }
+
+    function randomHex(n) {
+      return Array.from(crypto.getRandomValues(new Uint8Array(n)))
+        .map(b => b.toString(16).padStart(2, '0')).join('')
+    }
+
+    function $(sel) { return document.querySelector(sel) }
+    function navigate(page) { STATE.page = page; render() }
+
+    function Layout(content) {
+      const pages = [
+        { id: 'home', label: 'Home' },
+        { id: 'deposit', label: 'Deposit' },
+        { id: 'withdraw', label: 'Withdraw' },
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'admin', label: 'ASP Admin' },
+      ]
+      return `
+        <div class="min-h-screen bg-slate-950 text-slate-100">
+          <nav class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-8">
+                  <a href="#" onclick="navigate('home')" class="text-lg font-bold text-cyan-400 tracking-tight">StellarShield</a>
+                  <div class="flex gap-1">
+                    ${pages.map(p => `
+                      <a href="#" onclick="navigate('${p.id}')"
+                         class="px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                           STATE.page === p.id ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                         }">${p.label}</a>
+                    `).join('')}
+                  </div>
+                </div>
+                <div>
+                  ${STATE.wallet
+                    ? `<div class="flex items-center gap-3"><div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-sm"><span class="w-2 h-2 rounded-full bg-green-400"></span><code class="text-slate-300">${STATE.wallet.slice(0,6)}...${STATE.wallet.slice(-4)}</code></div><button onclick="disconnect()" class="text-sm text-slate-500 hover:text-slate-300">Disconnect</button></div>`
+                    : `<button onclick="connect()" class="px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 text-sm font-medium hover:bg-cyan-500/20">Freighter / Albedo</button>`
+                  }
+                </div>
+              </div>
+            </div>
+          </nav>
+          <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">${content}</main>
+        </div>
+      `
+    }
+
+    function HomePage() {
+      return Layout(`
+        <div class="text-center py-16">
+          <h1 class="text-5xl font-bold mb-4"><span class="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">StellarShield</span></h1>
+          <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-8">Compliant Privacy Pools on Stellar — private transactions with built-in regulatory safeguards</p>
+          <div class="flex gap-4 justify-center">
+            <a href="#" onclick="navigate('deposit')" class="px-6 py-3 rounded-xl bg-cyan-500 text-slate-950 font-semibold hover:bg-cyan-400">Start Depositing</a>
+            <a href="#" onclick="navigate('admin')" class="px-6 py-3 rounded-xl border border-slate-700 text-slate-300 font-semibold hover:bg-slate-800">ASP Dashboard</a>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
+          ${[
+            { title: 'Private Payments', desc: 'Deposit and withdraw with ZK proofs. No on-chain link.', icon: '🛡️' },
+            { title: 'ASP Compliance', desc: 'Allow/deny lists. Bad actors blocked, good users stay private.', icon: '✅' },
+            { title: 'Auditor Access', desc: 'View keys let authorized auditors inspect commitments.', icon: '🔍' },
+            { title: 'Stellar Native', desc: 'Soroban + BN254 host functions. Fast, cheap, real-world ready.', icon: '⭐' },
+          ].map(f => `<div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6 hover:border-slate-700"><div class="text-3xl mb-3">${f.icon}</div><h3 class="text-lg font-semibold mb-2">${f.title}</h3><p class="text-slate-400 text-sm">${f.desc}</p></div>`).join('')}
+        </div>
+      `)
+    }
+
+    function DepositPage() {
+      return Layout(`
+        <h1 class="text-2xl font-bold mb-6">Deposit into Shielded Pool</h1>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+              <label class="block text-sm font-medium text-slate-400 mb-2">Amount (XLM)</label>
+              <input type="number" id="deposit-amount" value="100"
+                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                     ${STATE.depositNote ? 'disabled' : ''} />
+            </div>
+            ${!STATE.depositNote
+              ? `<button onclick="generateDepositNote()" class="w-full px-6 py-4 rounded-xl bg-cyan-500 text-slate-950 font-semibold hover:bg-cyan-400 ${!STATE.wallet ? 'opacity-50 cursor-not-allowed' : ''}">1. Generate Deposit Note</button>`
+              : `<div class="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4">
+                  <h3 class="text-sm font-semibold text-cyan-400 mb-3">Deposit Note — SAVE THIS</h3>
+                  <div class="space-y-2">
+                    <div><label class="text-xs text-slate-500">Secret</label><code class="block text-xs bg-slate-800 rounded p-2 mt-1 break-all font-mono text-slate-300">${STATE.depositNote.secret}</code></div>
+                    <div><label class="text-xs text-slate-500">Commitment</label><code class="block text-xs bg-slate-800 rounded p-2 mt-1 break-all font-mono text-slate-300">${STATE.depositNote.commitment}</code></div>
+                  </div>
+                </div>
+                <button onclick="submitDeposit()" class="w-full px-6 py-4 rounded-xl bg-green-500 text-slate-950 font-semibold hover:bg-green-400">2. Submit Deposit</button>`
+            }
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+            <h3 class="text-sm font-semibold text-slate-400 mb-4">What's happening?</h3>
+            <div class="space-y-4 text-sm text-slate-400">
+              <p>1. Browser generates a random <strong class="text-slate-300">secret</strong> and computes a <strong class="text-slate-300">commitment</strong> hash.</p>
+              <p>2. Tokens are transferred to the pool contract. The commitment is stored in the Merkle tree.</p>
+              <p>3. Save your deposit note! You need the secret to withdraw later.</p>
+            </div>
+          </div>
+        </div>
+      `)
+    }
+
+    function WithdrawPage() {
+      return Layout(`
+        <h1 class="text-2xl font-bold mb-6">Withdraw from Shielded Pool</h1>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+              <label class="block text-sm font-medium text-slate-400 mb-2">Deposit Secret</label>
+              <input type="text" id="withdraw-secret" placeholder="Paste your deposit note secret"
+                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+              <label class="block text-sm font-medium text-slate-400 mb-2">Recipient Address</label>
+              <input type="text" id="withdraw-recipient" placeholder="G..."
+                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+            </div>
+            <button onclick="handleWithdraw()" class="w-full px-6 py-4 rounded-xl bg-violet-500 text-white font-semibold hover:bg-violet-400 ${!STATE.wallet ? 'opacity-50 cursor-not-allowed' : ''}">Generate ZK Proof & Withdraw</button>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+            <h3 class="text-sm font-semibold text-slate-400 mb-4">ZK Proof</h3>
+            <p class="text-slate-500 text-sm">ZK proof proves you own a deposit without revealing which one. Enforces: secret knowledge, Merkle inclusion, ASP membership, unique nullifier.</p>
+          </div>
+        </div>
+      `)
+    }
+
+    function DashboardPage() {
+      return Layout(`
+        <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          ${[{ label: 'Total Deposits', value: '1,750 XLM' }, { label: 'Active', value: '1,500 XLM' }, { label: 'Withdrawals', value: '1' }, { label: 'Pool Size', value: '12,450 XLM' }].map(s =>
+            `<div class="rounded-xl border border-slate-800 bg-slate-900/50 p-4"><div class="text-2xl font-bold text-cyan-400">${s.value}</div><div class="text-sm text-slate-500 mt-1">${s.label}</div></div>`
+          ).join('')}
+        </div>
+      `)
+    }
+
+    function AdminPage() {
+      return Layout(`
+        <h1 class="text-2xl font-bold mb-6">ASP Admin Panel</h1>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+            <h2 class="text-lg font-semibold mb-4 text-green-400">Allowlist</h2>
+            <p class="text-sm text-slate-400 mb-4">Add compliant commitments.</p>
+            <div class="flex gap-2 mb-4">
+              <input type="text" id="member-input" placeholder="Commitment..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <button onclick="addMember()" class="px-4 py-2 rounded-lg bg-green-500 text-slate-950 text-sm font-medium hover:bg-green-400">Add</button>
+            </div>
+            <div class="space-y-2">${STATE.members.map((m, i) => `<div class="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2"><code class="text-xs text-slate-300 font-mono">${m}</code><button onclick="removeMember(${i})" class="text-xs text-red-400 hover:text-red-300">Remove</button></div>`).join('')}</div>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+            <h2 class="text-lg font-semibold mb-4 text-red-400">Denylist</h2>
+            <p class="text-sm text-slate-400 mb-4">Block bad actors.</p>
+            <div class="flex gap-2 mb-4">
+              <input type="text" id="denied-input" placeholder="Commitment..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500" />
+              <button onclick="addDenied()" class="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-400">Block</button>
+            </div>
+            <div class="space-y-2">${STATE.denied.map((d, i) => `<div class="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2"><code class="text-xs text-slate-300 font-mono">${d}</code><button onclick="removeDenied(${i})" class="text-xs text-green-400 hover:text-green-300">Unblock</button></div>`).join('')}</div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6 mt-6">
+          <h2 class="text-lg font-semibold mb-4">Compliance — Authorized Auditors</h2>
+          <div class="space-y-2">${STATE.auditors.map(a => `<div class="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2"><code class="text-xs text-slate-300 font-mono">${a}</code><span class="text-xs text-cyan-400">Active</span></div>`).join('')}</div>
+        </div>
+      `)
+    }
+
+    function render() {
+      const pages = { home: HomePage, deposit: DepositPage, withdraw: WithdrawPage, dashboard: DashboardPage, admin: AdminPage }
+      const fn = pages[STATE.page] || pages.home
+      $('#root').innerHTML = fn()
+    }
+
+    window.connect = () => { STATE.wallet = 'G' + randomHex(27).toUpperCase(); render() }
+    window.disconnect = () => { STATE.wallet = null; render() }
+    window.generateDepositNote = () => { STATE.depositNote = { secret: randomHex(32), commitment: randomHex(32) }; render() }
+    window.submitDeposit = () => { if (!STATE.depositNote) return; STATE.deposits.push({ tx: '0x' + randomHex(32) }); STATE.depositNote = null; render() }
+    window.handleWithdraw = () => { STATE.proof = { tx: '0x' + randomHex(32) }; render() }
+    window.addMember = () => { const v = $('#member-input')?.value; if (v) { STATE.members.push(v); render() } }
+    window.removeMember = (i) => { STATE.members.splice(i, 1); render() }
+    window.addDenied = () => { const v = $('#denied-input')?.value; if (v) { STATE.denied.push(v); render() } }
+    window.removeDenied = (i) => { STATE.denied.splice(i, 1); render() }
+    window.navigate = navigate
+    render()
+  </script>
+</body>
+</html>

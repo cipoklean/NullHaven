@@ -1,0 +1,20 @@
+[workspace]
+# Run all tests from repo root:
+#   cargo test --workspace
+# Run individually:
+#   cargo test -p groth16-verifier
+#   cargo test -p nullhaven-pool
+members = [
+    "contracts/asp",
+    "contracts/compliance-registry",
+    "contracts/groth16-verifier",
+    "contracts/pool",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+soroban-sdk = "27.0.0-rc.1"
+resolver = "2"

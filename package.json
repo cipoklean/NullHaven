@@ -1,0 +1,19 @@
+{
+  "name": "nullhaven",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:preview": "cd frontend && npm run preview",
+    "contracts:build": "cd contracts && cargo build --target wasm32v1-none --release",
+    "contracts:deploy": "node scripts/deploy.mjs",
+    "circuits:build": "cd circuits && circom withdraw.circom --r1cs --wasm --sym",
+    "setup": "node scripts/setup.mjs",
+    "test": "cd contracts && cargo test",
+    "clean": "cd contracts && cargo clean"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
