@@ -124,17 +124,26 @@ export default function AdminPage() {
         })
       }
 
-      // Remove on-chain
-      onProgress('Removing from ASP allowlist — confirm in wallet', 'active')
-      const { Contract, Address, nativeToScVal } = await import('@stellar/stellar-sdk')
-      const { bytesVal, buildAndSubmit, normalizeHex } = await import('../lib/stellar-rpc')
-      const aspOp = new Contract(CONTRACTS.asp).call(
-        'remove_member',
-        nativeToScVal(Address.fromString(publicKey!), { type: 'address' }),
-        bytesVal(normalizeHex(commitment)),
-      )
-      await buildAndSubmit(publicKey!, aspOp, sign!, 30)
-      onProgress('Removing from ASP allowlist — confirm in wallet', 'done')
+      // Remove on-chain only if actually present (localStorage can drift)
+      const { isAspMember } = await import('../utils/asp')
+      const { normalizeHex } = await import('../lib/stellar-rpc')
+      const normCommitment = normalizeHex(commitment)
+      const isOnChain = await isAspMember(publicKey!, normCommitment)
+
+      if (isOnChain) {
+        onProgress('Removing from ASP allowlist — confirm in wallet', 'active')
+        const { Contract, Address, nativeToScVal } = await import('@stellar/stellar-sdk')
+        const { bytesVal, buildAndSubmit } = await import('../lib/stellar-rpc')
+        const aspOp = new Contract(CONTRACTS.asp).call(
+          'remove_member',
+          nativeToScVal(Address.fromString(publicKey!), { type: 'address' }),
+          bytesVal(normCommitment),
+        )
+        await buildAndSubmit(publicKey!, aspOp, sign!, 30)
+        onProgress('Removing from ASP allowlist — confirm in wallet', 'done')
+      } else {
+        onProgress('Commitment not on-chain — cleaning local state', 'done')
+      }
 
       // Re-sync ASP root with remaining members
       const remaining = members.filter((m) => m.commitment !== commitment)

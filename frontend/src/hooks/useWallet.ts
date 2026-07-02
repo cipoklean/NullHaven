@@ -19,6 +19,8 @@ async function fetchXlmBalance(publicKey: string): Promise<string | null> {
   }
 }
 
+const DISCONNECT_KEY = 'nullhaven:wallet:disconnected'
+
 export function useWallet() {
   const [publicKey,  setPublicKey]  = useState<string | null>(null)
   const [loading,    setLoading]    = useState(false)
@@ -35,6 +37,8 @@ export function useWallet() {
   }, [publicKey])
 
   const checkConnection = useCallback(async () => {
+    // Respect explicit disconnect — don't auto-reconnect if user disconnected
+    if (localStorage.getItem(DISCONNECT_KEY) === 'true') return
     try {
       const connected = await isConnected()
       if (connected.isConnected) {
@@ -59,6 +63,9 @@ export function useWallet() {
     setLoading(true)
     setError(null)
     try {
+      // Clear disconnect flag — user is explicitly connecting
+      localStorage.removeItem(DISCONNECT_KEY)
+
       // Request access — Freighter prompts the user to approve
       const { address } = await requestAccess()
       setPublicKey(address)
@@ -87,6 +94,8 @@ export function useWallet() {
     setPublicKey(null)
     setNetworkOk(false)
     setBalance(null)
+    // Persist disconnect so auto-detect doesn't reconnect on next load
+    localStorage.setItem(DISCONNECT_KEY, 'true')
   }, [])
 
   useEffect(() => {

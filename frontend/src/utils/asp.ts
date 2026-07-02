@@ -154,8 +154,12 @@ export async function addAspMember(
     ? existing
     : [...existing, { commitment, label: label || 'deposit', addedAt: new Date().toISOString() }]
 
-  if (!alreadyExists) {
-    // Add on-chain
+  // Even if localStorage has it, verify on-chain — localStorage can drift
+  // if a previous tx timed out during confirmation polling.
+  const onChainMember = await isAspMember(source, commitment)
+
+  if (!onChainMember) {
+    // Add on-chain (always, regardless of localStorage state)
     onProgress?.('Adding commitment to ASP allowlist — confirm in wallet', 'active')
     const aspAddr = CONTRACTS.asp
     const op = new Contract(aspAddr).call(
@@ -165,8 +169,10 @@ export async function addAspMember(
     )
     await buildAndSubmit(source, op, sign, 30)
     onProgress?.('Adding commitment to ASP allowlist — confirm in wallet', 'done')
-    localStorage.setItem(LS_MEMBERS, JSON.stringify(members))
   }
+
+  // Always persist to localStorage (covers both new entries and drift correction)
+  localStorage.setItem(LS_MEMBERS, JSON.stringify(members))
 
   const root = await syncAspRoot(source, members, sign, onProgress)
   return { commitment, root }
