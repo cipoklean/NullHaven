@@ -5,6 +5,7 @@ import { addAspDenied, addAspMember, loadAspList, LS_DENIED, LS_MEMBERS, type As
 import { useToast } from '../components/Toast'
 import { useConfirm, ConfirmDialog } from '../components/ConfirmDialog'
 import { CONTRACTS } from '../config'
+import { formatAspError } from '../utils/errors'
 
 type Tab = 'members' | 'denied'
 type AspStatus = 'Active' | 'Withdrawn'
@@ -92,7 +93,7 @@ export default function AdminPage() {
       setInput(''); setLabel('')
       addToast('success', `ASP root updated: 0x${root.slice(0, 16)}... Commitment ${commitment.slice(0, 12)}... approved.`)
     } catch (e) {
-      addToast('error', e instanceof Error ? e.message : 'Failed to add member')
+      addToast('error', formatAspError(e, 'Failed to add member'))
     } finally {
       setLoading(false)
     }
@@ -158,7 +159,7 @@ export default function AdminPage() {
       localStorage.removeItem(`nullhaven:asp:path:${commitment}`)
       addToast('success', `Commitment ${commitment.slice(0, 12)}... removed from allowlist.`)
     } catch (e) {
-      addToast('error', e instanceof Error ? e.message : 'Failed to remove member')
+      addToast('error', formatAspError(e, 'Failed to remove member'))
     } finally {
       setLoading(false)
     }
@@ -223,7 +224,7 @@ export default function AdminPage() {
       setMembers(loadAspList(LS_MEMBERS))
       addToast('success', `Commitment ${commitment.slice(0, 12)}... removed from denylist.`)
     } catch (e) {
-      addToast('error', e instanceof Error ? e.message : 'Failed to remove from denylist')
+      addToast('error', formatAspError(e, 'Failed to remove from denylist'))
     } finally {
       setLoading(false)
     }
@@ -290,7 +291,7 @@ export default function AdminPage() {
         : `Blocked on-chain. Allowlist is now empty.`)
       addToast('info', `Commitment ${commitment.slice(0, 12)}... is now denied and cannot withdraw.`)
     } catch (e) {
-      addToast('error', e instanceof Error ? e.message : 'Failed to add to denylist')
+      addToast('error', formatAspError(e, 'Failed to add to denylist'))
     } finally {
       setLoading(false)
     }
